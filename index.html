@@ -1,44 +1,62 @@
 <html>
 <head>
-  <title>Last.fm to csv</title>
+  <title>Meetup.com to JSON</title>
   <link rel="stylesheet" type="text/css" href="bower_components/bootstrap/dist/css/bootstrap.css">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body>
-  <a href="https://github.com/benfoxall/lastfm-to-csv"><img style="position: absolute; top: 0; right: 0; border: 0;" src="gh.png" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_orange_ff7600.png"></a>
 
   <div class="container">
 
     <div class="page-header">
       <h1>
-        Last.fm to csv 
-        <small>
-          <a href="#settings" data-toggle="modal" data-target="#settings">
-            <span class="glyphicon glyphicon-cog"></span>
-          </a>
-        </small>
+        Meetup.com to JSON
       </h1>
     </div>
-    <p class="lead">This fetches data from the lastfm api, and formats it as a csv document</p>
+    <p class="lead">This fetches member data from the Meetup api, and formats it as a JSON document</p>
 
-    <div class="alert alert-warning" style="display:none" rv-show="user_error">Couldn't find user</div>
+
+    <!-- settings modal -->
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <h4 class="panel-title">Settings</h4>
+      </div>
+      <div class="panel-body">
+        <p class="lead">
+          Requests to the Meetup api can be rate limited or fail, use these settings if you start having problems
+        </p>
+        <div class="row">
+          <div class="form-group col-md-6">
+            <label for="api-key">
+              api key
+            </label>
+            <input type="text" class="form-control input-md" id="api-key" placeholder="0123456789abcdef0123456789abcdef">
+            <p class="help-block">Use an api key - generate one at <a href="http://www.meetup.com/meetup_api/">meetup.com/meetup_api</a></p>
+          </div>
+          <div class="form-group col-md-6">
+            <label for="request-delay">
+              request delay
+            </label>
+            <input type="number" step="100" min="0" class="form-control input-md" id="request-delay" placeholder="0">
+            <p class="help-block">(milliseconds, default 0) how long to wait between making requests</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="alert alert-warning" style="display:none" rv-show="group_error">Couldn't find group</div>
 
     <form class="form-inline">
-      <div class="form-group" rv-class-has-error="user_error">
-        <input type="text" class="form-control input-lg" placeholder="lastfm username" name="lastfm-user" required rv-disabled="submitted">
+      <div class="form-group" rv-class-has-error="group_error">
+        <input type="text" class="form-control input-lg" placeholder="Meetup group" name="meetup-group" required rv-disabled="submitted">
       </div>
-      <button type="submit" class="btn btn-primary btn-lg"  rv-disabled="submitted">Fetch tracks</button>
+      <button type="submit" class="btn btn-primary btn-lg"  rv-disabled="submitted">Fetch members</button>
+      <a href="#reset" class="btn btn-link" rv-show="submitted">Reset</a>
     </form>
 
     <section id="results" rv-show="submitted" style="display:none">
       <h1>{ status }</h1>
-      <!--p>
-        <span class="label label-warning">
-          retries: <span data-bind="retries">-</span>
-        </span>
-        &nbsp;
-      -->
       <p>
         <span class="label label-danger" rv-show="errors">
           errors: <span data-bind="errors">{ errors }</span>
@@ -46,81 +64,44 @@
       </p>
       <p>
         <a class="btn" href="#download" rv-class-btn-success="complete" rv-class-btn-info="incomplete < complete">
-          Save 
-          <small>{ kb }kb</small>
+          Save
+          <small>~{ kb }kb</small>
         </a>
         <a href="#cancel" rv-show="incomplete < complete">cancel</a>
         <span class="help-block">a partial file can be saved while fetching more data</span>
       </p>
     </section>
-  
-
-    <!-- settings modal -->
-
-    <div class="modal fade" id="settings">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-            <h4 class="modal-title">Extra Settings</h4>
-          </div>
-          <div class="modal-body">
-            <p class="lead">
-              Requests to the lastfm api can be rate limited or fail, use these settings if you start having problems
-            </p>
-            <div class="form-group">
-              <label for="api-key">
-                alternate api key
-              </label>
-              <input type="text" class="form-control input-md" id="api-key" placeholder="0123456789abcdef0123456789abcdef" rv-value="api_key">
-              <p class="help-block">Use an alternative api key - generate one at <a href="http://www.last.fm/api">last.fm/api</a></p>
-            </div>
-            <div class="form-group">
-              <label for="request-delay">
-                request delay
-              </label>
-              <input type="text" class="form-control input-md" id="request-delay" placeholder="0"  rv-value="request_delay">
-              <p class="help-block">(milliseconds, default 0) how long to wait between making requests</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
 
 
 
     <script src="bower_components/reqwest/reqwest.js"></script>
     <script src="bower_components/FileSaver/FileSaver.js"></script>
     <script src="bower_components/async/lib/async.js"></script>
-    <script src="bower_components/comma-separated-values/csv.js"></script>
     <script src="bower_components/rivets/dist/rivets.js"></script>
-    <script src="js/lastfm-export.js"></script>
+    <script src="js/meetup-export.js"></script>
 
     <script src="bower_components/jquery/dist/jquery.js"></script>
     <script src="bower_components/bootstrap/dist/js/bootstrap.js"></script>
     <script type="text/javascript">
-      //hook up the export to the page
+      function defaultState(){
+        return {
+          status:     '-',
+          kb:         0,
+          submitted:  false,
+          user_error: false,
+          complete:   false,
+          errors: 0,
+
+          cancelled: false,
+
+          incomplete: function(){
+            return !this.complete
+          }
+        };
+      }
 
       // the state of the page
-      var state = {
-        status:     '-',
-        kb:         0,
-        submitted:  false,
-        user_error: false,
-        complete:   false,
-        errors: 0,
-
-        // settings
-        api_key:'',
-        request_delay:'',
-
-        cancelled: false,
-
-
-        incomplete: function(){
-          return !this.complete
-        }
-      };
+      var state = defaultState();
 
       rivets.bind(document, state)
 
@@ -129,8 +110,8 @@
 
       $('[href=#download]').on('click', function(e){
         e.preventDefault();
-        var b = new Blob(data, {type: 'text/csv'})
-        saveAs(b, ($('[name=lastfm-user]').val()||"lastFM") + '.csv')
+        var b = new Blob([JSON.stringify(data)], {type: 'application/json'})
+        saveAs(b, ($('[name=meetup-group]').val()||"Meetup") + '.json')
       })
 
       $('[href=#cancel]').on('click', function(e){
@@ -138,70 +119,103 @@
         state.cancelled = true;
       })
 
+      $('[href=#reset]').on('click', function(e){
+        e.preventDefault();
+        var initialState = defaultState();
+        for (var key in initialState) {
+          if (initialState.hasOwnProperty(key)) {
+            state[key] = initialState[key];
+          }
+        }
+      })
+
       $('form').on('submit', function(e){
         e.preventDefault();
 
         state.submitted = true;
-        state.user_error = false;
+        state.group_error = false;
         state.errors = 0;
 
-        // the data that will be filled with csv
         data = [];
 
-        var delay = $('request-delay').val() || 0,
-            key   = $('api-key').val() || '974a5ebc077564f72bd639d122479d4b',
-            user  = $('[name=lastfm-user]').val();
+        var delay = $('#request-delay').val() || 0,
+            key   = $('#api-key').val() || '123456',
+            group  = $('[name=meetup-group]').val();
 
-        lastFM(requestData(key, user))
-        .fail(function (err, msg) {
-          state.submitted = false;
-          state.user_error = true;
-        })
-        .then(extractPageCount)
-        .then(function(page_count){
 
-          state.status = "fetching page 1/" + page_count;
-          var current = 0;
-          
-          var requests = requestList(key, user, page_count)
-            // .slice(0,5)
-            .map(function(r, i){
-              return {
-                data:r,
-                i:i
-              }
-            })
+        var old_data = localStorage.getItem(group);
 
-          async.eachSeries(requests, function(item, callback){
-            if(state.cancelled) return callback(false);
 
-            state.status = "fetching page " + (item.i) + "/" + page_count;
-            lastFM(item.data)
-            .then(extractTracks)
-            .then(function(tracks){
-              var blb = new Blob([
-                tracks.map(function(d){
-                  return row(['artist', 'album', 'name', 'date'], d)
-                })
-                .map(csv).join('\n') + '\n']);
-              data[item.i] = blb;
-              bytes+= blb.size;
-              state.kb = Math.round(bytes/1024);
-            })
-            .fail(function(){
-              state.errors++;
-            })
-            .always(function(){
-              setTimeout(callback, parseInt(state.request_delay || '0', 10), false);
-            })
-          }, function(){
-            state.status = "finished";
-            state.complete = true;
+        meetup(requestData(key, group))
+          .fail(function (err, msg) {
+            state.submitted = false;
+            state.group_error = true;
           })
+          .then(extractMeta)
+          .then(function(meta){
+            var page_count = meta.page_count;
+            var total_count = meta.total_count;
+            var current = 0;
 
-        })
+
+            var complete = function() {
+              bytes = utf8ByteLength(JSON.stringify(data));
+              state.kb = Math.round(bytes/1024);
+
+              localStorage.setItem(group, JSON.stringify(data));
+              state.status = "finished";
+              state.complete = true;
+            };
+
+            var requests = requestMembers(key, group, page_count)
+              .map(function(r, i){
+                return {
+                  data:r,
+                  i:i
+                }
+              });
+
+            if(old_data && JSON.parse(old_data).length === total_count){
+              data = JSON.parse(old_data);
+              return complete();
+            }
+
+
+            state.status = "fetching page 1/" + page_count;
+
+            async.eachSeries(requests, function(item, callback){
+              if(state.cancelled) return callback(false);
+
+              state.status = "fetching page " + (item.i) + "/" + page_count;
+              meetup(item.data)
+              .then(extractMembers)
+              .then(function(members){
+
+                members.forEach(function(member){
+                  data.push(member);
+                });
+
+                bytes += utf8ByteLength(JSON.stringify(members));
+                state.kb = Math.round(bytes/1024);
+              })
+              .fail(function(){
+                state.errors++;
+              })
+              .always(function(){
+                setTimeout(callback, parseInt(state.request_delay || '0', 10), false);
+              })
+            },
+            complete);
+          });
 
       });
+
+      function utf8ByteLength(str) {
+        if (!str) return 0;
+        var escapedStr = encodeURI(str);
+        var match = escapedStr.match(/%/g);
+        return match ? (escapedStr.length - match.length *2) : escapedStr.length;
+      }
 
     </script>
 

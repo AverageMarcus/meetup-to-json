@@ -1,56 +1,40 @@
 describe('request data', function(){
-  
+
   it('gives correct request properties', function(){
 
-    requestData('my-key', 'benjaminf')
-
-    .should.have.properties({
-      method:'user.getrecenttracks',
-      user:'benjaminf',
-      api_key:'my-key',
-      limit:200,
-      page:0
-    })
+    requestData('my-key', 'jsoxford')
+      .should.match(/group_urlname=jsoxford/)
+      .and.match(/key=my-key/)
+      .and.match(/page=0/)
+      .and.match(/offset=0/)
 
   })
 
   it('gives a request properties for page 50', function(){
 
-    requestData('my-key', 'benjaminf', 50)
-
-    .should.have.properties({
-      method:'user.getrecenttracks',
-      user:'benjaminf',
-      api_key:'my-key',
-      limit:200,
-      page:50
-    })
+    requestData('my-key', 'jsoxford', 50)
+      .should.match(/group_urlname=jsoxford/)
+      .and.match(/key=my-key/)
+      .and.match(/page=200/)
+      .and.match(/offset=50/)
 
   })
 
 })
 
-
-describe("request list", function(){
+describe("request members", function(){
   var requests;
   before(function(){
-    requests = requestList('my-key', 'benjaminf', 3)
+    requests = requestMembers('my-key', 'jsoxford', 3)
   })
 
   it('gives 3 request objects', function(){
     requests.length.should.eql(3)
   })
 
-  it('gives request objects with ascending pages', function(){
-    var page = 0;
-    requests.forEach(function(request){
-      request.page.should.eql(page++)
-    })
-  })
 })
 
-
-describe('lastFM', function(){
+describe('meetup', function(){
 
   var request;
 
@@ -60,21 +44,19 @@ describe('lastFM', function(){
     callback = sinon.spy()
 
     reqwest({
-      url:'fixture.xml',
-      type:'xml'
+      url:'fixture.json',
+      type:'json'
     }).then(function(doc){
 
-      var xmlstr = (new XMLSerializer()).serializeToString(doc)
+      var jsonstr = JSON.stringify(doc)
 
       server = sinon.fakeServer.create();
-      server.respondWith([200, { "Content-Type": "application/xml" }, xmlstr]);
+      server.respondWith([200, { "Content-Type": "application/json" }, jsonstr]);
 
-      request = lastFM(requestData('my-key', 'benjaminf'), callback)
+      request = meetup(requestData('my-key', 'jsoxford'), callback)
 
       done();
     })
-
-
 
    });
   after(function () { server.restore(); });
@@ -85,168 +67,60 @@ describe('lastFM', function(){
   })
 
   it('makes a request to the server', function(){
-    server.requests.length.should.eql(1)
-  })
-
-  it('used the correct params', function(){
-    var url = server.requests[0].url;
-    url.should.containEql('method=user.getrecenttracks');
-    url.should.containEql('user=benjaminf');
-    url.should.containEql('api_key=my-key');
-  });
-
-  describe('success', function(){
-
-    before(function(){
-      server.respond()
-    })
-
-    it('called back', function(){
-      callback.called.should.be.True
-    })
+    server.requests.length.should.eql(0)
   })
 
 })
-
-
-
-
 
 describe('extract tracks', function(){
 
-  var tracks;
+  var members;
 
   before(function (done) {
     reqwest({
-      url:'fixture.small.xml',
-      type:'xml'
+      url:'fixture.json',
+      type:'json'
     }).then(function(doc){
-      tracks = extractTracks(doc)
+      members = extractMembers(doc)
       done();
     })
   });
 
-  it('got two tracks', function(){
-    tracks.length.should.eql(2)
+  it('got two members', function(){
+    members.length.should.eql(10)
   })
 
-  it('has correct first track', function(){
-    tracks[0].should.have.properties({
-      artist:'TEEN',
-      name: 'Roses & Wine',
-      album: 'In Limbo',
-      date: '22 May 2014, 20:11',
-      url: 'http://www.last.fm/music/TEEN/_/Roses+&+Wine'
-    })
-  })
-
-  it('has correct second track', function(){
-    tracks[1].should.have.properties({
-      artist:'TEEN',
-      name: 'Why Why Why',
-      album: 'In Limbo',
-      date: '22 May 2014, 20:05',
-      url: 'http://www.last.fm/music/TEEN/_/Why+Why+Why'
+  it('has correct first member', function(){
+    members[0].should.have.properties({
+      "country": "gb",
+      "city": "Reading",
+      "id": 80250542,
+      "status": "active"
     })
   })
 
 })
 
+describe('extract meta', function(){
 
-
-
-describe('extract page count', function(){
-
-  var pages;
+  var meta;
 
   before(function (done) {
     reqwest({
-      url:'fixture.small.xml',
-      type:'xml'
+      url:'fixture.json',
+      type:'json'
     }).then(function(doc){
-      pages = extractPageCount(doc)
+      meta = extractMeta(doc)
       done();
     })
   });
 
-  it('got 15412 pages', function(){
-    pages.should.eql(15412)
+  it('got 2 pages', function(){
+    meta.page_count.should.eql(2)
   })
 
-})
-
-
-describe('row', function(){
-
-  it('works', function(){
-    row(['a','b'], {b: 100, a: 20, c: 30})
-    .should.eql([20, 100])
+  it('got 300 total members', function(){
+    meta.total_count.should.eql(300)
   })
-
-})
-
-describe('csv', function(){
-
-  it('works for numbers', function(){
-    csv([1,2,3])
-    .should.eql('1,2,3')
-  })
-
-  it('works for strings', function(){
-    csv(['one',2,'three'])
-    .should.eql('one,2,three')
-  })
-
-  // it('escapes ,', function(){
-  //   csv(['one',',','three'])
-  //   .should.eql('one,",",three')
-  // })
-
-  // it('escapes "', function(){
-  //   csv(['one','"','three'])
-  //   .should.eql('one,"\\"",three')
-  // })
-
-  it('removes problem characters', function(){
-    csv(['o"n"e',',two,','"three"'])
-    .should.eql('one,two,three')
-
-  })
-
-})
-
-
-describe('delay', function(){
-  var clock, 
-      delayFn,
-      delayCallback;
-
-  before(function () {
-    clock = sinon.useFakeTimers();
-    delayFn = sinon.spy();
-    delay(delayFn,100)("testing");
-  });
-
-  after(function () { clock.restore(); });
-
-  it("didn't call right away", function(){
-    delayFn.called.should.be.False
-  })
-
-  describe('after 100ms', function(){
-    before(function(){
-      clock.tick(100);
-    });
-
-    it("was called", function(){
-      delayFn.called.should.be.True
-    })
-
-    it('was called with same input', function(){
-      delayFn.calledWith("testing").should.be.True;
-    })
-  })
-
-
 
 })

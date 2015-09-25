@@ -1,20 +1,25 @@
 {
-  "name": "lastfm-export",
+  "name": "meetup-to-json",
   "version": "0.0.0",
-  "homepage": "https://github.com/benfoxall/lastfm-export",
+  "homepage": "https://github.com/AverageMarcus/meetup-to-json",
   "authors": [
+    "Marcus Noble <marcus@marcusnoble.co.uk>",
     "Ben Foxall <benfoxall@gmail.com>"
   ],
-  "description": "A tool for exporting scrobbles",
+  "description": "A tool for exporting Meetup.com members",
   "main": "index.html",
   "license": "MIT",
-  "private": true,
   "ignore": [
     "**/.*",
     "bower_components",
-    "tests"
+    "tests",
+    "node_modules",
+    "test"
   ],
   "dependencies": {
-    "reqwest": "~1.1.0"
+    "async": "~0.9.0",
+    "bootstrap": "~3.1.1",
+    "FileSaver": "*",
+    "rivets": "~0.6.8"
   }
 }
